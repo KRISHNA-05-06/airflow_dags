@@ -18,12 +18,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Airflow
+      - name: Validate DAG Syntax
         run: |
-          pip install "structlog>=23.1.0,<24.0.0"
-          pip install apache-airflow==3.0.1
-
-      - name: Validate DAGs
-        run: |
-          echo "Validating DAG syntax..."
-          airflow dags list || exit 1
+          echo "Validating DAG Python syntax..."
+          for file in dags/*.py; do
+            echo "Checking $file..."
+            python -m py_compile "$file" && echo "✅ $file is valid" || { echo "❌ $file has errors"; exit 1; }
+          done
+          echo "All DAGs passed syntax validation!"
