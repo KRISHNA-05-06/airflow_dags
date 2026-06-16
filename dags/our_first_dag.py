@@ -17,7 +17,7 @@ default_args = {
     start_date = datetime(2026, 6, 15),
     catchup = False,
     default_args = default_args,
-    tags = ["airflow3", "etl"],
+    tags = ["airflow3", "etl", "mysql"],
 )
 def daily_etl_pipeline():
     @task
