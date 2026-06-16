@@ -146,5 +146,3 @@ def daily_etl_pipeline():
     loaded >> preview_mysql  # 👈 runs AFTER all 4 markets are loaded
 
 dag = daily_etl_pipeline()
-
-# CI/CD test - GitHub Actions validation
