@@ -19,7 +19,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install Airflow
-        run: pip install apache-airflow==3.1.1
+        run: |
+          pip install "structlog>=23.1.0,<24.0.0"
+          pip install apache-airflow==3.0.1
 
       - name: Validate DAGs
         run: |
