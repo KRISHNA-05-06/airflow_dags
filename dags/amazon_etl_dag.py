@@ -127,10 +127,76 @@ def amazon_books_etl():
         print(f"[TRANSFORM] Sample:\n{df.head(5).to_string(index=False)}")
 
         return transformed_path
+    
+    @task
+    def load_to_mysql(transformed_file: str):
+        """
+        Loads the transfomred Open Library book dataset into MySQL.
+        Uses trucate-and-load pattern for idempotency.
+        """
+        import mysql.connector
+        import numpy as np
+
+        db_config = {
+            "host": "host.docker.internal",
+            "user": "airflow",
+            "password": "airflow",
+            "database": "airflow_db",
+            "port": 3306
+        }
+
+        df = pd.read_csv(transformed_file)
+        table_name = "amazon_books_data"
+
+        # Replace NaN with None for MySQL compatibility
+        df = df.replace({np.nan: None})
+
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Create table if not exists
+        cursor.execute(f"""
+                       CREATE TABLE IF NOT EXISTS {table_name} (
+                       TITLE VARCHAR(512),
+                       AUTHOR VARCHAR(255),
+                       First_Published INT,
+                       Rating DECIMAL(4,2),
+                       Editions INT,
+                       extracted_at VARCHAR(50)
+                    );
+                """)
+        
+        # Truncate for idempotency
+        cursor.execute(f"TRUNCATE TABLE {table_name};")
+
+        # Insert rows
+        insert_query = f"""
+        INSERT INTO {table_name}
+        (Title, Author, First_Published, Rating, Editions, extracted_at)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+
+        for _, row in df.iterrows():
+            try:
+                cursor.execute(insert_query, (
+                    row["Title"],
+                    row["Author"],
+                    row["First_Published"],
+                    row["Rating"],
+                    row["Editions"],
+                    row["extracted_at"]
+                ))
+            except Exception as e:
+                print(f"[LOAD] Skipped row due to error: {e}")
+        
+        conn.commit()
+        conn.close()
+        print(f"[LOAD] Table '{table_name}' loaded with {len(df)} records.")
 
     # task dependencies
     raw_file = get_amazon_data_books()
     transformed_file = transform_amazon_books(raw_file)
+    load_to_mysql(transformed_file)
 
         
         
