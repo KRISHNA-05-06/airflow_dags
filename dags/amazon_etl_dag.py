@@ -9,6 +9,9 @@ from bs4 import BeautifulSoup
 
 default_args = {
     "owner": "Sri Krishna Sai Kota",
+    "email": ["srikrishnasaikota@gmail.com"],
+    "email_on_failure": True,
+    "email_on_retry": False,
     "retries": 3,
     "retry_delay": timedelta(minutes=2),
 }
