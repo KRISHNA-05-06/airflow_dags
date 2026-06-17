@@ -82,9 +82,55 @@ def amazon_books_etl():
         print(df.head(5).to_string(index=False))
 
         return raw_path
+    
+    @task
+    def transform_amazon_books(raw_file: str):
+        """
+        Cleans and standardizes the extracted Open Library book dataset.
+        - Fills missing values
+        - Converts data types
+        - Filters out books with no rating
+        - Adds extracted_at timestamp
+        """
+        import pandas as pd
+        from datetime import datetime
+
+        if not os.path.exists(raw_file):
+            raise FileNotFoundError(f"Raw file not found: {raw_file}")
+
+        df = pd.read_csv(raw_file)
+        print(f"[TRANSFORM] Loaded {len(df)} records from raw dataset.")
+
+        # Fill missing values
+        df["Author"].fillna("N/A", inplace=True)
+        df["First_Published"].fillna(0, inplace=True)
+        df["Editions"].fillna(0, inplace=True)
+        df["Rating"].fillna(0, inplace=True)
+
+        # Convert types
+        df["First_Published"] = pd.to_numeric(df["First_Published"], errors="coerce").fillna(0).astype(int)
+        df["Editions"] = pd.to_numeric(df["Editions"], errors="coerce").fillna(0).astype(int)
+        df["Rating"] = pd.to_numeric(df["Rating"], errors="coerce").fillna(0).round(2)
+
+        # Drop rows where both Rating and First_Published are missing
+        df.dropna(subset=["Rating", "First_Published"], how="all", inplace=True)
+
+        # Add timestamp
+        df["extracted_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Save transformed file
+        transformed_path = raw_file.replace("raw", "transformed")
+        df.to_csv(transformed_path, index=False)
+
+        print(f"[TRANSFORM] Cleaned data saved at {transformed_path}")
+        print(f"[TRANSFORM] {len(df)} valid records after standardization.")
+        print(f"[TRANSFORM] Sample:\n{df.head(5).to_string(index=False)}")
+
+        return transformed_path
 
     # task dependencies
     raw_file = get_amazon_data_books()
+    transformed_file = transform_amazon_books(raw_file)
 
         
         
